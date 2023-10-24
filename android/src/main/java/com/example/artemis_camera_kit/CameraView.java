@@ -530,20 +530,44 @@ class CameraView implements PlatformView, CameraViewInterface, MethodChannel.Met
     }
 
     private class BarcodeAnalyzer implements ImageAnalysis.Analyzer {
+        private final int analysisAreaWidth = 200;  // Ширина области анализа
+        private final int analysisAreaHeight = 200; // Высота области анализа
+        private final int topLeftX = displaySize.x - analysisAreaWidth; // X-координата левого верхнего угла области
+        private final int topLeftY = 0; // Y-координата левого верхнего угла области
 
 
         @Override
         public void analyze(@NonNull ImageProxy imageProxy) {
             @SuppressLint({"UnsafeExperimentalUsageError", "UnsafeOptInUsageError"}) Image mediaImage = imageProxy.getImage();
             if (mediaImage != null) {
-                InputImage image =
-                        InputImage.fromMediaImage(mediaImage, imageProxy.getImageInfo().getRotationDegrees());
+                // Проверьте, что углы штрихкода находятся внутри области анализа
+                if (isBarcodeInAnalysisArea(mediaImage)) {
+                    InputImage image = InputImage.fromMediaImage(mediaImage, imageProxy.getImageInfo().getRotationDegrees());
 
-                scanner.process(image)
-                        .addOnSuccessListener(this::onSuccess)
-                        .addOnFailureListener(e -> System.out.println("Error in reading barcode: " + e.getMessage()))
-                        .addOnCompleteListener(task -> imageProxy.close());
+                    scanner.process(image)
+                            .addOnSuccessListener(this::onSuccess)
+                            .addOnFailureListener(e -> System.out.println("Error in reading barcode: " + e.getMessage()))
+                            .addOnCompleteListener(task -> imageProxy.close());
+                }
             }
+        }
+
+        // Получите координаты углов штрихкода
+        private boolean isBarcodeInAnalysisArea(Image image) {        
+            for (Barcode barcode : image.getBarcodes()) {
+                List<Point> cornerPoints = barcode.getCornerPoints();
+                if (cornerPoints != null && cornerPoints.size() == 4) {
+                    // Проверьте, что хотя бы один угол штрихкода находится в области анализа
+                    for (Point p : cornerPoints) {
+                        int x = p.x;
+                        int y = p.y;
+                        if (x >= topLeftX && x < topLeftX + analysisAreaWidth && y >= topLeftY && y < topLeftY + analysisAreaHeight) {
+                            return true;
+                        }
+                    }
+                }
+            }
+            return false;
         }
 
         private void onSuccess(List<Barcode> barcodes) {
