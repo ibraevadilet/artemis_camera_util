@@ -2,6 +2,8 @@
 
 ArtemisCameraKit uses native android and ios APIs for taking picture and ScanningBarcode and Text Recognition
 
+-
+
 Main features:
 - Easy implementation 
 - Automatic permission handling (no need for 3rd-party libraries)
